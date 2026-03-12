@@ -32,9 +32,13 @@ app.use('/api/download', downloadRoutes)
 // ── Error handler ───────────────────────────────────────────────────────────
 app.use(errorHandler)
 
-app.listen(PORT, () => {
-  console.log(`🚀 Nandal Cloud API running on port ${PORT}`)
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`)
-})
+// Only start HTTP server when running locally (not on Vercel serverless)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Nandal Cloud API running on port ${PORT}`)
+    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`)
+  })
+}
 
+// Export for Vercel serverless
 module.exports = app
