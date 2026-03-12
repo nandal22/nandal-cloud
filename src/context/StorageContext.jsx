@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
+import { supabase } from '../services/supabase'
+import { upload as uploadApi } from '../services/api'
 
 // ─── Demo seed data ────────────────────────────────────────────────────────────
 const DEMO_FILES = [
@@ -95,31 +97,68 @@ export function StorageProvider({ children }) {
   }, [notify])
 
   // ── File helpers ───────────────────────────────────────────────
-  const uploadFiles = useCallback((fileList) => {
-    const newFiles = Array.from(fileList).map(file => ({
-      id: `f${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      name: file.name,
-      type: getFileType(file.name),
-      size: file.size,
-      folderId: currentFolderId,
-      createdAt: new Date().toISOString().split('T')[0],
-      tags: [],
-      content: null,
-      file,
-    }))
-    // Simulate upload progress
+  // uploadFiles: real two-step upload via Supabase signed URLs.
+  // Files go directly browser → Supabase Storage (no Vercel body limit).
+  // onProgress(fileIndex, pct) is called with per-file progress 0-100.
+  const uploadFiles = useCallback(async (fileList, onProgress) => {
+    const list = Array.from(fileList)
     setUploadProgress(0)
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += 20
-      setUploadProgress(progress)
-      if (progress >= 100) {
-        clearInterval(interval)
-        setFiles(prev => [...prev, ...newFiles])
-        setUploadProgress(null)
-        notify(`${newFiles.length} file(s) uploaded`)
+
+    const uploaded = []
+    for (let i = 0; i < list.length; i++) {
+      const file = list[i]
+      try {
+        // Step 1: get signed upload URL from our backend
+        const { fileId, signedUrl, token, storagePath } = await uploadApi.sign(
+          file.name,
+          currentFolderId,
+          file.size,
+          file.type || 'application/octet-stream'
+        )
+
+        // Step 2: upload directly to Supabase Storage using XMLHttpRequest
+        // so we get real upload progress events
+        await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest()
+          xhr.open('PUT', signedUrl)
+          xhr.setRequestHeader('x-upsert', 'true')
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100)
+              onProgress?.(i, pct)
+              // Overall progress = files done + current file progress
+              const overall = Math.round(((i + pct / 100) / list.length) * 100)
+              setUploadProgress(overall)
+            }
+          }
+          xhr.onload  = () => xhr.status < 300 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`))
+          xhr.onerror = () => reject(new Error('Network error during upload'))
+          xhr.send(file)
+        })
+
+        // Step 3: tell backend the upload is complete → saves metadata
+        const { file: record } = await uploadApi.complete(fileId)
+        uploaded.push({
+          id:        record.id,
+          name:      record.name,
+          type:      getFileType(record.name),
+          size:      record.size,
+          folderId:  record.folderId,
+          createdAt: record.createdAt?.split('T')[0] ?? new Date().toISOString().split('T')[0],
+          tags:      [],
+          content:   null,
+        })
+        onProgress?.(i, 100)
+      } catch (err) {
+        notify(`Failed to upload "${file.name}": ${err.message}`, 'error')
       }
-    }, 200)
+    }
+
+    if (uploaded.length > 0) {
+      setFiles(prev => [...prev, ...uploaded])
+      notify(`${uploaded.length} file${uploaded.length > 1 ? 's' : ''} uploaded`)
+    }
+    setUploadProgress(null)
   }, [currentFolderId, notify])
 
   const deleteFile = useCallback((fileId) => {

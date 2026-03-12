@@ -62,7 +62,7 @@ export default function FileGrid() {
     return (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 4px' }}>
         {/* List header */}
-        <div style={{
+        <div className="list-header" style={{
           display: 'flex', alignItems: 'center', gap: 12,
           padding: '6px 14px', marginBottom: 4,
           fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
@@ -72,11 +72,16 @@ export default function FileGrid() {
           <span style={{ width: 15 }} />
           <span style={{ width: 18 }} />
           <span style={{ flex: 1 }}>Name</span>
-          <span style={{ width: 120 }}>Tags</span>
-          <span style={{ width: 72, textAlign: 'right' }}>Size</span>
-          <span style={{ width: 88, textAlign: 'right' }}>Date</span>
+          <span className="col-tags" style={{ width: 120 }}>Tags</span>
+          <span className="col-size" style={{ width: 72, textAlign: 'right' }}>Size</span>
+          <span className="col-date" style={{ width: 88, textAlign: 'right' }}>Date</span>
           <span style={{ width: 24 }} />
         </div>
+        <style>{`
+          @media (max-width: 500px) {
+            .col-tags, .col-date { display: none !important; }
+          }
+        `}</style>
 
         {/* Folders */}
         {displayFolders.map(folder => (
@@ -119,11 +124,7 @@ export default function FileGrid() {
           }}>
             Folders
           </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-            gap: 10,
-          }}>
+          <div className="folder-grid">
             {displayFolders.map(folder => (
               <FolderCard key={folder.id} folder={folder} />
             ))}
@@ -143,11 +144,7 @@ export default function FileGrid() {
               Files {searchQuery && <span style={{ color: 'var(--accent)', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>— {displayFiles.length} result{displayFiles.length !== 1 ? 's' : ''}</span>}
             </div>
           )}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: 10,
-          }}>
+          <div className="file-grid">
             {displayFiles.map(file => (
               <FileCardGrid key={file.id} file={file} />
             ))}

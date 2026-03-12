@@ -1,7 +1,8 @@
 const router   = require('express').Router()
 const supabase = require('../services/supabase')
-const github   = require('../services/github')
 const authMiddleware = require('../middleware/auth')
+
+const BUCKET = 'user-files'
 
 // GET /api/files  — list all files for the logged-in user
 router.get('/', authMiddleware, async (req, res, next) => {
@@ -89,13 +90,15 @@ router.delete('/folders/:folderId', authMiddleware, async (req, res, next) => {
     // Delete all files in folder from GitHub
     const { data: files } = await supabase
       .from('files')
-      .select('id, github_path, github_sha')
+      .select('id, storage_path')
       .eq('folder_id', folderId)
       .eq('user_id', userId)
 
-    await Promise.allSettled((files || []).map(f =>
-      github.deleteFile(f.github_path, f.github_sha, `Delete folder ${folderId}`)
-    ))
+    // Delete files from Supabase Storage
+    const storagePaths = (files || []).map(f => f.storage_path).filter(Boolean)
+    if (storagePaths.length > 0) {
+      await supabase.storage.from(BUCKET).remove(storagePaths)
+    }
 
     // Delete records
     await supabase.from('files').delete().eq('folder_id', folderId).eq('user_id', userId)
@@ -115,18 +118,19 @@ router.delete('/:fileId', authMiddleware, async (req, res, next) => {
 
     const { data: file } = await supabase
       .from('files')
-      .select('github_path, github_sha')
+      .select('storage_path')
       .eq('id', fileId)
       .eq('user_id', userId)
       .single()
 
     if (!file) return res.status(404).json({ error: 'File not found' })
 
-    // Delete from GitHub
-    const sha = file.github_sha || await github.getFileSha(file.github_path)
-    if (sha) await github.deleteFile(file.github_path, sha)
+    // Delete from Supabase Storage
+    if (file.storage_path) {
+      await supabase.storage.from(BUCKET).remove([file.storage_path])
+    }
 
-    // Delete record
+    // Delete metadata record
     await supabase.from('files').delete().eq('id', fileId).eq('user_id', userId)
 
     res.json({ message: 'File deleted' })

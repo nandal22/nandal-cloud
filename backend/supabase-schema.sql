@@ -31,13 +31,40 @@ CREATE TABLE IF NOT EXISTS files (
   size         BIGINT NOT NULL DEFAULT 0,
   mime_type    TEXT,
   extension    TEXT,
-  github_path  TEXT NOT NULL,          -- path in GitHub repo
-  github_sha   TEXT,                   -- SHA for update/delete
+  storage_path TEXT NOT NULL,          -- path in Supabase Storage bucket 'user-files'
   is_encrypted BOOLEAN DEFAULT true,
+  status       TEXT DEFAULT 'active',  -- 'pending' (upload in progress) | 'active'
   tags         TEXT[] DEFAULT '{}',
   created_at   TIMESTAMPTZ DEFAULT now(),
   updated_at   TIMESTAMPTZ DEFAULT now()
 );
+
+-- ── Supabase Storage setup ───────────────────────────────────────────────────
+-- 1. Go to Supabase Dashboard → Storage → Create bucket
+--    Name: user-files   Public: NO (private)
+--
+-- 2. Storage policies (Dashboard → Storage → user-files → Policies):
+--
+-- INSERT: users upload only to their own subfolder
+-- CREATE POLICY "Users upload own files" ON storage.objects
+--   FOR INSERT WITH CHECK (
+--     bucket_id = 'user-files'
+--     AND (storage.foldername(name))[1] = auth.uid()::text
+--   );
+--
+-- SELECT: users download only their own files
+-- CREATE POLICY "Users read own files" ON storage.objects
+--   FOR SELECT USING (
+--     bucket_id = 'user-files'
+--     AND (storage.foldername(name))[1] = auth.uid()::text
+--   );
+--
+-- DELETE: users delete only their own files
+-- CREATE POLICY "Users delete own files" ON storage.objects
+--   FOR DELETE USING (
+--     bucket_id = 'user-files'
+--     AND (storage.foldername(name))[1] = auth.uid()::text
+--   );
 
 -- Full-text search index on file name and tags
 CREATE INDEX IF NOT EXISTS files_name_search ON files USING gin(to_tsvector('english', name));

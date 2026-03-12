@@ -22,7 +22,7 @@ export default function Notification() {
   const color = COLORS[notification.type] || COLORS.info
 
   return (
-    <div style={{
+    <div className="notification" style={{
       position: 'fixed', bottom: 24, right: 24, zIndex: 400,
       background: 'var(--bg-card)',
       border: `1px solid ${color}44`,
