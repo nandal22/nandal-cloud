@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {
   Cloud, Folder, FolderOpen, ChevronRight, ChevronDown,
   HardDrive, Star, Trash2, Clock, Shield, Plus, Image,
-  FileCode, FileVideo, Archive
+  FileCode, FileVideo, Archive, X
 } from 'lucide-react'
 import { useStorage, formatSize } from '../context/StorageContext'
 
@@ -72,15 +72,15 @@ function FolderNode({ folder, depth = 0 }) {
   )
 }
 
-export default function Sidebar({ onCreateFolder }) {
+export default function Sidebar({ onCreateFolder, onClose, className }) {
   const { folders, currentFolderId, setCurrentFolderId, getStorageStats, searchQuery } = useStorage()
   const stats = getStorageStats()
   const usedPct = (stats.used / stats.total) * 100
   const rootFolders = folders.filter(f => f.parentId === null)
 
   return (
-    <aside style={{
-      width: 220,
+    <aside className={className || 'sidebar'} style={{
+      width: 'var(--sidebar-width)',
       flexShrink: 0,
       background: 'var(--bg-secondary)',
       borderRight: '1px solid var(--border)',
@@ -105,8 +105,23 @@ export default function Sidebar({ onCreateFolder }) {
         }}>
           <Cloud size={18} color="white" />
         </div>
-        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>Nandal Cloud</span>
+        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', flex: 1 }}>Nandal Cloud</span>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="sidebar-close-btn"
+            style={{
+              background: 'transparent', color: 'var(--text-muted)',
+              padding: 4, borderRadius: 6, lineHeight: 0, display: 'none',
+            }}
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
+      <style>{`
+        @media (max-width: 767px) { .sidebar-close-btn { display: flex !important; } }
+      `}</style>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
         {/* Main nav */}

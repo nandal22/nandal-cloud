@@ -18,6 +18,7 @@ export default function NewFolderModal({ onClose }) {
 
   return (
     <div
+      className="modal-overlay"
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
         background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
@@ -26,6 +27,7 @@ export default function NewFolderModal({ onClose }) {
       onClick={onClose}
     >
       <div
+        className="modal-sheet"
         style={{
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border)',

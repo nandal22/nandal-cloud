@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   LayoutGrid, List, Upload, FolderPlus, Trash2,
-  SortAsc, SortDesc, ChevronDown, X, Download,
+  SortAsc, SortDesc, X,
 } from 'lucide-react'
 import { useStorage } from '../context/StorageContext'
 
@@ -14,20 +14,12 @@ export default function Toolbar({ onUploadClick, onCreateFolder }) {
 
   const selectedCount = selectedIds.size
 
-  const sorts = [
-    { value: 'name', label: 'Name' },
-    { value: 'date', label: 'Date' },
-    { value: 'size', label: 'Size' },
-  ]
-
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '8px 0',
-    }}>
-      {/* Upload */}
+    <div className="toolbar">
+      {/* Upload — hidden on mobile (FAB handles it) */}
       <button
         onClick={onUploadClick}
+        className="toolbar-desktop-only"
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'var(--accent)', color: 'white',
@@ -38,12 +30,13 @@ export default function Toolbar({ onUploadClick, onCreateFolder }) {
         onMouseLeave={e => e.currentTarget.style.background = 'var(--accent)'}
       >
         <Upload size={14} />
-        Upload
+        <span className="toolbar-label">Upload</span>
       </button>
 
-      {/* New Folder */}
+      {/* New Folder — hidden on mobile (bottom nav handles it) */}
       <button
         onClick={onCreateFolder}
+        className="toolbar-desktop-only"
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
@@ -55,7 +48,7 @@ export default function Toolbar({ onUploadClick, onCreateFolder }) {
         onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
       >
         <FolderPlus size={14} />
-        New Folder
+        <span className="toolbar-label">New Folder</span>
       </button>
 
       <div style={{ flex: 1 }} />
@@ -70,10 +63,10 @@ export default function Toolbar({ onUploadClick, onCreateFolder }) {
           <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>
             {selectedCount} selected
           </span>
-          <button onClick={deleteSelected} style={{ background: 'transparent', color: 'var(--danger)', lineHeight: 0, padding: 2 }}>
+          <button onClick={deleteSelected} style={{ background: 'transparent', color: 'var(--danger)', lineHeight: 0, padding: 4, minHeight: 'unset' }}>
             <Trash2 size={14} />
           </button>
-          <button onClick={clearSelection} style={{ background: 'transparent', color: 'var(--text-muted)', lineHeight: 0, padding: 2 }}>
+          <button onClick={clearSelection} style={{ background: 'transparent', color: 'var(--text-muted)', lineHeight: 0, padding: 4, minHeight: 'unset' }}>
             <X size={14} />
           </button>
         </div>
@@ -87,12 +80,13 @@ export default function Toolbar({ onUploadClick, onCreateFolder }) {
           style={{
             background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
             border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-            padding: '6px 10px', fontSize: 12, cursor: 'pointer',
+            padding: '6px 8px', fontSize: 12, cursor: 'pointer',
+            minHeight: 'unset',
           }}
         >
-          {sorts.map(s => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
+          <option value="name">Name</option>
+          <option value="date">Date</option>
+          <option value="size">Size</option>
         </select>
         <button
           onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
@@ -101,8 +95,6 @@ export default function Toolbar({ onUploadClick, onCreateFolder }) {
             border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
             padding: '6px 8px', lineHeight: 0,
           }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
         >
           {sortDir === 'asc' ? <SortAsc size={14} /> : <SortDesc size={14} />}
         </button>
@@ -126,12 +118,19 @@ export default function Toolbar({ onUploadClick, onCreateFolder }) {
               color: viewMode === mode ? 'var(--text-primary)' : 'var(--text-muted)',
               padding: '6px 10px', lineHeight: 0,
               borderRight: mode === 'grid' ? '1px solid var(--border)' : 'none',
+              minHeight: 'unset',
             }}
           >
             <Icon size={14} />
           </button>
         ))}
       </div>
+
+      <style>{`
+        @media (max-width: 767px) {
+          .toolbar-desktop-only { display: none !important; }
+        }
+      `}</style>
     </div>
   )
 }
